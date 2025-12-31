@@ -5,6 +5,8 @@ import { parkingLotAPI } from '../services/api';
 import LiveCameraSlotSelector from '../components/LiveCameraSlotSelector';
 import LiveOccupancyTracker from '../components/LiveOccupancyTracker';
 import LocationAutoFill from '../components/LocationAutoFill';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, X, MapPin, DollarSign, Car, Camera, Trash2, Check, AlertCircle } from 'lucide-react';
 
 const OwnerDashboard = () => {
   const { user, isAuthenticated } = useAuth();
@@ -16,11 +18,11 @@ const OwnerDashboard = () => {
     name: '',
     address: '',
     latitude: '',
-    longitude: '',
+    longitude: '', // Keeping as string/number based on existing logic
     pricePerHour: '',
     useOpenCV: false,
     totalSlots: '',
-    cameraSlots: null, // Will store camera-detected slots
+    cameraSlots: null,
   });
   const [locationData, setLocationData] = useState(null);
   const [showCameraSelector, setShowCameraSelector] = useState(false);
@@ -56,8 +58,6 @@ const OwnerDashboard = () => {
       ...formData,
       [name]: type === 'checkbox' ? checked : value,
     });
-
-    // Reset slots when switching between OpenCV and manual
     if (name === 'useOpenCV') {
       setFormData(prev => ({
         ...prev,
@@ -78,6 +78,7 @@ const OwnerDashboard = () => {
     });
     setError('');
     setSuccess('Location set successfully!');
+    setTimeout(() => setSuccess(''), 3000);
   };
 
   const handleCameraSlotsSelected = (slotData) => {
@@ -88,6 +89,7 @@ const OwnerDashboard = () => {
     });
     setShowCameraSelector(false);
     setSuccess(`Selected ${slotData.totalSlots} parking slots!`);
+    setTimeout(() => setSuccess(''), 3000);
   };
 
   const handleSubmit = async (e) => {
@@ -95,7 +97,6 @@ const OwnerDashboard = () => {
     setError('');
     setSuccess('');
 
-    // Validation
     if (!formData.name || !formData.address || !formData.latitude || !formData.longitude || !formData.pricePerHour) {
       setError('Please fill all required fields');
       return;
@@ -119,7 +120,6 @@ const OwnerDashboard = () => {
     }
 
     try {
-      // Create parking lot
       const createData = {
         name: formData.name,
         address: formData.address,
@@ -132,14 +132,11 @@ const OwnerDashboard = () => {
       const response = await parkingLotAPI.create(createData);
       const parkingLotId = response.data._id || response.data.id;
 
-      // If OpenCV is enabled, get slot IDs and define slot coordinates
       if (formData.useOpenCV && formData.cameraSlots) {
         try {
-          // Get the created parking lot to access its slots
           const lotResponse = await parkingLotAPI.getById(parkingLotId);
           const createdSlots = lotResponse.data.slots || [];
-          
-          // Match camera-detected slots with created slots by slot number
+
           const slotDefinitions = formData.cameraSlots.slots.map(slotDef => {
             const slot = createdSlots.find(s => s.slotNumber === slotDef.slot_number);
             return slot ? {
@@ -152,14 +149,12 @@ const OwnerDashboard = () => {
           }).filter(s => s !== null);
 
           if (slotDefinitions.length > 0) {
-            // Define slot coordinates (slots are already created, just adding coordinates)
             await parkingLotAPI.defineSlots(parkingLotId, {
               slots: slotDefinitions,
             });
           }
         } catch (cvError) {
           console.error('OpenCV slot definition error:', cvError);
-          // Non-critical - parking lot is created, coordinates can be set later
         }
       }
 
@@ -168,6 +163,7 @@ const OwnerDashboard = () => {
       setShowAddForm(false);
       await fetchParkingLots();
       window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to add parking lot');
     }
@@ -195,14 +191,12 @@ const OwnerDashboard = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this parking lot?')) {
-      return;
-    }
-
+    if (!window.confirm('Are you sure you want to delete this parking lot?')) return;
     try {
       await parkingLotAPI.delete(id);
       setSuccess('Parking lot deleted successfully!');
       fetchParkingLots();
+      setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to delete parking lot');
     }
@@ -210,275 +204,319 @@ const OwnerDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Owner Dashboard</h1>
+    <div className="min-h-screen bg-slate-50 pb-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Owner Dashboard</h1>
+            <p className="text-slate-500 mt-1">Manage your parking lots and track occupancy</p>
+          </div>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
+            className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-600/30 hover:bg-blue-700 hover:shadow-blue-600/40 transition-all font-medium"
           >
-            {showAddForm ? 'Cancel' : '+ Add Parking Lot'}
+            {showAddForm ? <X className="w-5 h-5 mr-2" /> : <Plus className="w-5 h-5 mr-2" />}
+            {showAddForm ? 'Cancel' : 'Add Parking Lot'}
           </button>
         </div>
 
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 flex items-center"
+            >
+              <AlertCircle className="w-5 h-5 mr-2" />
+              {error}
+            </motion.div>
+          )}
 
-        {success && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-            {success}
-          </div>
-        )}
+          {success && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl mb-6 flex items-center"
+            >
+              <Check className="w-5 h-5 mr-2" />
+              {success}
+            </motion.div>
+          )}
 
-        {showAddForm && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            {/* Done and Cancel buttons at the top */}
-            <div className="flex justify-between items-center mb-6 pb-4 border-b">
-              <h2 className="text-2xl font-bold">Add New Parking Lot</h2>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  className="bg-gray-300 text-gray-800 px-6 py-2 rounded-lg hover:bg-gray-400 transition font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  form="parking-lot-form"
-                  className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition font-semibold"
-                >
-                  ✓ Done
-                </button>
+          {showAddForm && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="bg-white rounded-2xl shadow-xl border border-slate-100 p-8 mb-8 overflow-hidden"
+            >
+              <div className="flex justify-between items-center mb-8 pb-4 border-b border-slate-100">
+                <h2 className="text-2xl font-bold text-slate-800">Add New Parking Lot</h2>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    className="px-6 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 border border-transparent hover:border-slate-200 transition font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    form="parking-lot-form"
+                    className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition font-semibold"
+                  >
+                    Save & Publish
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <form id="parking-lot-form" onSubmit={handleSubmit} className="space-y-6">
-              {/* 1. Parking Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Parking Name *
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g., Downtown Parking"
-                  required
-                />
-              </div>
+              <form id="parking-lot-form" onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Left Column */}
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Parking Name</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
+                      placeholder="e.g., Central Plaza Parking"
+                      required
+                    />
+                  </div>
 
-              {/* 2. Address */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Address *
-                </label>
-                <div className="space-y-2">
-                  <input
-                    type="text"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter parking lot address"
-                    required
-                  />
-                  <LocationAutoFill
-                    onLocationSet={handleLocationSet}
-                    currentAddress={formData.address}
-                  />
-                  {locationData && (
-                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <p className="text-sm text-green-800 font-semibold">
-                        ✓ Location saved: {locationData.address}
-                      </p>
-                      <p className="text-xs text-gray-600 mt-1">
-                        Coordinates: {formData.latitude}, {formData.longitude}
-                      </p>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Hourly Rate (₹)</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <DollarSign className="h-5 w-5 text-slate-400" />
+                      </div>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        name="pricePerHour"
+                        value={formData.pricePerHour}
+                        onChange={handleChange}
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
+                        placeholder="50.00"
+                        required
+                      />
                     </div>
-                  )}
-                </div>
-              </div>
+                  </div>
 
-              {/* 3. Price per Hour */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Price per Hour (₹) *
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  name="pricePerHour"
-                  value={formData.pricePerHour}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g., 50.00"
-                  required
-                />
-              </div>
+                  <div className="bg-slate-50 p-6 rounded-xl border border-slate-100">
+                    <div className="flex items-center gap-3 mb-4">
+                      <input
+                        type="checkbox"
+                        id="useOpenCV"
+                        name="useOpenCV"
+                        checked={formData.useOpenCV}
+                        onChange={handleChange}
+                        className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                      />
+                      <label htmlFor="useOpenCV" className="font-semibold text-slate-800 cursor-pointer">
+                        Enable Smart Camera Detection
+                      </label>
+                    </div>
 
-              {/* 4. OpenCV Option */}
-              <div className="border-t pt-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <input
-                    type="checkbox"
-                    id="useOpenCV"
-                    name="useOpenCV"
-                    checked={formData.useOpenCV}
-                    onChange={handleChange}
-                    className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
-                  />
-                  <label htmlFor="useOpenCV" className="text-lg font-medium text-gray-700 cursor-pointer">
-                    Use OpenCV-based Parking Detection
-                  </label>
-                </div>
-
-                {formData.useOpenCV ? (
-                  <div className="ml-8 space-y-4 bg-blue-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-700">
-                      Select parking slots using your camera. Click the button below to open camera and define slots.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setShowCameraSelector(true)}
-                      className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium"
-                    >
-                      📷 Open Camera & Select Slots
-                    </button>
-                    {formData.cameraSlots && (
-                      <div className="mt-4 p-3 bg-green-100 border border-green-300 rounded-lg">
-                        <p className="text-sm font-semibold text-green-800">
-                          ✓ {formData.cameraSlots.totalSlots} parking slots selected
+                    {formData.useOpenCV ? (
+                      <div className="space-y-4">
+                        <p className="text-sm text-slate-600">
+                          Use your webcam or CCTV to automatically detect available slots.
                         </p>
                         <button
                           type="button"
                           onClick={() => setShowCameraSelector(true)}
-                          className="text-sm text-blue-600 hover:text-blue-800 mt-2 underline"
+                          className="w-full flex items-center justify-center px-4 py-3 bg-white border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-50 transition font-medium"
                         >
-                          Modify slots
+                          <Camera className="w-5 h-5 mr-2" />
+                          Configure Camera Slots
                         </button>
+                        {formData.cameraSlots && (
+                          <div className="flex items-center text-green-700 bg-green-50 px-3 py-2 rounded-lg text-sm">
+                            <Check className="w-4 h-4 mr-2" />
+                            {formData.cameraSlots.totalSlots} slots configured
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-slate-700">Total Capacity</label>
+                        <input
+                          type="number"
+                          min="1"
+                          name="totalSlots"
+                          value={formData.totalSlots}
+                          onChange={handleChange}
+                          className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                          placeholder="Number of slots"
+                          required={!formData.useOpenCV}
+                        />
+                        <p className="text-xs text-slate-500">Manual capacity management</p>
                       </div>
                     )}
                   </div>
-                ) : (
-                  <div className="ml-8 space-y-4 bg-gray-50 p-4 rounded-lg">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Number of Parking Slots *
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      name="totalSlots"
-                      value={formData.totalSlots}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="e.g., 10"
-                      required={!formData.useOpenCV}
-                    />
-                    <p className="text-xs text-gray-600">
-                      Slots will be managed based on customer bookings
-                    </p>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Location & Address</label>
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <MapPin className="h-5 w-5 text-slate-400" />
+                        </div>
+                        <input
+                          type="text"
+                          name="address"
+                          value={formData.address}
+                          onChange={handleChange}
+                          className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
+                          placeholder="Search or enter address"
+                          required
+                        />
+                      </div>
+
+                      <div className="bg-slate-50 p-1 rounded-xl border border-slate-100">
+                        <LocationAutoFill
+                          onLocationSet={handleLocationSet}
+                          currentAddress={formData.address}
+                        />
+                      </div>
+
+                      {locationData && (
+                        <div className="p-4 bg-green-50 border border-green-100 rounded-xl flex items-start gap-3">
+                          <div className="bg-green-100 p-1.5 rounded-full mt-0.5">
+                            <Check className="w-4 h-4 text-green-700" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-green-800">Location Verified</p>
+                            <p className="text-xs text-green-700 mt-1">{locationData.address}</p>
+                            <p className="text-xs text-green-600 mt-0.5 font-mono">
+                              {formData.latitude?.toString().substring(0, 8)}, {formData.longitude?.toString().substring(0, 8)}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
+                </div>
+              </form>
+            </motion.div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {parkingLots.length === 0 ? (
+              <div className="col-span-2 flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-slate-300">
+                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                  <Car className="w-10 h-10 text-slate-300" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900">No Parking Lots Yet</h3>
+                <p className="text-slate-500 mt-2 mb-6">Create your first parking lot to start managing.</p>
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition font-medium"
+                >
+                  Create Parking Lot
+                </button>
               </div>
-            </form>
-          </div>
-        )}
+            ) : (
+              parkingLots.map((lot) => (
+                <motion.div
+                  layout
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  key={lot._id}
+                  className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl hover:translate-y-[-2px] transition-all duration-300"
+                >
+                  <div className="p-6">
+                    <div className="flex justify-between items-start mb-6">
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-900 mb-1">{lot.name}</h3>
+                        <div className="flex items-center text-slate-500 text-sm">
+                          <MapPin className="w-4 h-4 mr-1" />
+                          {lot.address}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleDelete(lot._id)}
+                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete Parking Lot"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
 
-        {/* Parking Lots List */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {parkingLots.length === 0 ? (
-            <div className="col-span-2 text-center py-12 text-gray-500">
-              No parking lots yet. Add your first parking lot to get started!
-            </div>
-          ) : (
-            parkingLots.map((lot) => (
-              <div key={lot._id} className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-800">{lot.name}</h3>
-                    <p className="text-gray-600 text-sm mt-1">{lot.address}</p>
-                  </div>
-                  <button
-                    onClick={() => handleDelete(lot._id)}
-                    className="text-red-600 hover:text-red-800 text-sm font-medium"
-                  >
-                    Delete
-                  </button>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Price per hour</p>
-                    <p className="text-lg font-bold text-green-600">₹{lot.pricePerHour}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Availability</p>
-                    <p className={`text-lg font-bold ${lot.availableSlots > 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                      {lot.availableSlots} / {lot.totalSlots} available
-                    </p>
-                  </div>
-                </div>
-
-                {lot.slots && lot.slots.length > 0 && (
-                  <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                    <div className="flex justify-between items-center mb-3">
-                      <p className="text-sm font-semibold text-gray-700">Parking Slots:</p>
-                      <div className="flex items-center gap-3">
-                        <p className="text-xs text-gray-500">
-                          {lot.occupiedSlots} occupied • {lot.availableSlots} available
-                        </p>
-                        {(lot.cameraEnabled || (lot.slots && lot.slots.some(s => s.coordinates && s.coordinates.length > 0))) && (
-                          <button
-                            onClick={() => {
-                              setSelectedLotForTracking(lot);
-                              setShowOccupancyTracker(true);
-                            }}
-                            className="bg-blue-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-blue-700"
-                          >
-                            📹 Live Track
-                          </button>
-                        )}
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                      <div className="bg-slate-50 p-4 rounded-xl">
+                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Rate</p>
+                        <p className="text-xl font-bold text-slate-900">₹{lot.pricePerHour}<span className="text-sm text-slate-500 font-normal">/hr</span></p>
+                      </div>
+                      <div className="bg-slate-50 p-4 rounded-xl">
+                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Status</p>
+                        <div className="flex items-center">
+                          <div className={`w-2 h-2 rounded-full mr-2 ${lot.availableSlots > 0 ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                          <p className="text-lg font-bold text-slate-900">
+                            {lot.availableSlots} <span className="text-sm text-slate-500 font-normal">free</span>
+                          </p>
+                        </div>
                       </div>
                     </div>
-                    <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2">
-                      {lot.slots.map((slot) => (
-                        <div
-                          key={slot._id}
-                          className={`p-2 rounded-lg text-center text-xs font-semibold ${
-                            slot.isOccupied
-                              ? 'bg-red-100 text-red-800 border-2 border-red-300'
-                              : 'bg-green-100 text-green-800 border-2 border-green-300'
-                          }`}
-                        >
-                          <div className="text-lg mb-1">{slot.isOccupied ? '🚗' : '🅿️'}</div>
-                          <div className="font-bold">#{slot.slotNumber}</div>
+
+                    {lot.slots && lot.slots.length > 0 && (
+                      <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
+                        <div className="flex justify-between items-center mb-4">
+                          <p className="text-sm font-bold text-slate-700">Live Status</p>
+                          {(lot.cameraEnabled || (lot.slots && lot.slots.some(s => s.coordinates && s.coordinates.length > 0))) && (
+                            <button
+                              onClick={() => {
+                                setSelectedLotForTracking(lot);
+                                setShowOccupancyTracker(true);
+                              }}
+                              className="bg-white border border-blue-200 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-50 transition shadow-sm flex items-center"
+                            >
+                              <Camera className="w-3 h-3 mr-1.5" />
+                              Live View
+                            </button>
+                          )}
                         </div>
-                      ))}
-                    </div>
+                        <div className="grid grid-cols-5 sm:grid-cols-6 gap-2">
+                          {lot.slots.map((slot) => (
+                            <div
+                              key={slot._id}
+                              className={`aspect-square rounded-lg flex flex-col items-center justify-center transition-all ${slot.isOccupied
+                                  ? 'bg-red-100 border-2 border-red-200 text-red-700 shadow-sm'
+                                  : 'bg-white border-2 border-green-200 text-green-700 shadow-sm'
+                                }`}
+                              title={`Slot ${slot.slotNumber}: ${slot.isOccupied ? 'Occupied' : 'Free'}`}
+                            >
+                              <div className="text-sm mb-0.5">{slot.isOccupied ? '🚗' : '✨'}</div>
+                              <div className="font-bold text-xs">#{slot.slotNumber}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
+                </motion.div>
+              ))
+            )}
+          </div>
+        </AnimatePresence>
       </div>
 
-      {/* Live Camera Slot Selector Modal */}
       {showCameraSelector && (
         <LiveCameraSlotSelector
           onSlotsSelected={handleCameraSlotsSelected}
@@ -486,7 +524,6 @@ const OwnerDashboard = () => {
         />
       )}
 
-      {/* Live Occupancy Tracker Modal */}
       {showOccupancyTracker && selectedLotForTracking && (
         <LiveOccupancyTracker
           parkingLotId={selectedLotForTracking._id}
