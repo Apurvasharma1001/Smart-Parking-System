@@ -80,5 +80,3 @@ To ensure realistic delivery, we explicitly exclude:
 3.  **Uptime**: 99.9% availability for the Booking API.
 
 ---
-
-*This roadmap represents a concrete, achievable engineering plan based on the solid foundation built in Round-1.*
