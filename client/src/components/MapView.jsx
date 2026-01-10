@@ -95,16 +95,35 @@ const MapView = ({ userLocation, parkingLots, onParkingLotClick, onMapClick, hei
                 click: () => onParkingLotClick && onParkingLotClick(lot),
               }}
             >
-              <Popup>
-                <div>
-                  <h3 className="font-bold">{lot.name}</h3>
-                  <p className="text-sm">{lot.address}</p>
-                  <p className="text-sm text-green-600 font-semibold">
-                    ${lot.pricePerHour}/hr
-                  </p>
-                  <p className="text-sm">
-                    Available: {lot.availableSlots || 0} / {lot.totalSlots || 0}
-                  </p>
+              <Popup className="custom-popup">
+                <div className="p-2 min-w-[200px]">
+                  <h3 className="font-bold text-lg text-slate-900 mb-1">{lot.name}</h3>
+                  <p className="text-sm text-slate-600 mb-2">{lot.address}</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-semibold text-green-600">
+                      ₹{lot.pricePerHour?.toFixed(2) || '0.00'}/hr
+                    </span>
+                    {lot.distance && (
+                      <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                        {lot.distance < 1000 
+                          ? `${Math.round(lot.distance)}m` 
+                          : `${(lot.distance / 1000).toFixed(2)}km`}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-500">
+                      Available: <span className="font-semibold text-blue-600">{lot.availableSlots || 0}</span> / {lot.totalSlots || 0}
+                    </span>
+                    {lot.availableSlots > 0 && (
+                      <button
+                        onClick={() => onParkingLotClick && onParkingLotClick(lot)}
+                        className="text-xs bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 transition font-semibold"
+                      >
+                        Book Now
+                      </button>
+                    )}
+                  </div>
                 </div>
               </Popup>
             </Marker>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { motion } from 'framer-motion';
 import { User, Mail, Lock, Car, Building2, CheckCircle2, AlertCircle } from 'lucide-react';
 import heroImage from '../assets/login-hero.png';
@@ -21,6 +22,7 @@ const Register = () => {
   });
 
   const { register } = useAuth();
+  const { showError, success } = useToast();
   const navigate = useNavigate();
 
   const checkPasswordStrength = (password) => {
