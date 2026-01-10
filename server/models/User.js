@@ -19,12 +19,15 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please provide a password'],
     minlength: 6,
-    select: false,
   },
   role: {
     type: String,
-    enum: ['OWNER', 'CUSTOMER', 'ADMIN'],
+    enum: ['OWNER', 'CUSTOMER'],
     required: [true, 'Please select a role'],
+  },
+  phone: {
+    type: String,
+    trim: true,
   },
   createdAt: {
     type: Date,
@@ -43,7 +46,7 @@ userSchema.pre('save', async function (next) {
 });
 
 // Compare password method
-userSchema.methods.matchPassword = async function (enteredPassword) {
+userSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 

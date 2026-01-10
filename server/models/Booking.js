@@ -1,38 +1,36 @@
 const mongoose = require('mongoose');
 
 const bookingSchema = new mongoose.Schema({
-  customer: {
+  customerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
+    required: [true, 'Customer ID is required'],
   },
-  parkingLot: {
+  parkingLotId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ParkingLot',
-    required: true,
+    required: [true, 'Parking lot ID is required'],
   },
-  parkingSlot: {
+  slotId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'ParkingSlot',
-    required: true,
+    ref: 'Slot',
+    required: [true, 'Slot ID is required'],
   },
   startTime: {
     type: Date,
-    required: true,
-    default: Date.now,
+    required: [true, 'Start time is required'],
   },
   endTime: {
     type: Date,
   },
-  totalPrice: {
-    type: Number,
-    required: true,
-    min: 0,
-  },
   status: {
     type: String,
-    enum: ['ACTIVE', 'COMPLETED', 'CANCELLED'],
-    default: 'ACTIVE',
+    enum: ['BOOKED', 'COMPLETED', 'CANCELLED'],
+    default: 'BOOKED',
+  },
+  totalAmount: {
+    type: Number,
+    min: 0,
   },
   createdAt: {
     type: Date,
@@ -41,10 +39,8 @@ const bookingSchema = new mongoose.Schema({
 });
 
 // Indexes for efficient queries
-bookingSchema.index({ customer: 1, status: 1 });
-bookingSchema.index({ parkingLot: 1, status: 1 });
-bookingSchema.index({ parkingSlot: 1, status: 1 });
+bookingSchema.index({ customerId: 1, status: 1 });
+bookingSchema.index({ parkingLotId: 1, status: 1 });
+bookingSchema.index({ slotId: 1, status: 1 });
 
 module.exports = mongoose.model('Booking', bookingSchema);
-
-
