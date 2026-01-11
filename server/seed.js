@@ -90,9 +90,13 @@ const seedDatabase = async () => {
     console.log(`     Email: ${customer.email}`);
     console.log('     Password: password123\n');
 
+    // Close database connection
+    await mongoose.connection.close();
+    console.log('🔌 Database connection closed');
     process.exit(0);
   } catch (error) {
     console.error('❌ Error seeding database:', error);
+    await mongoose.connection.close();
     process.exit(1);
   }
 };
