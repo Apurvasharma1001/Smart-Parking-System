@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -90,49 +91,51 @@ const Home = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <div className="min-h-screen bg-gray-50">
-          <Navbar />
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route
-              path="/login"
-              element={
-                <GuestRoute>
-                  <Login />
-                </GuestRoute>
-              }
-            />
-            <Route
-              path="/register"
-              element={
-                <GuestRoute>
-                  <Register />
-                </GuestRoute>
-              }
-            />
-            <Route
-              path="/owner/dashboard"
-              element={
-                <ProtectedRoute requiredRole="OWNER">
-                  <OwnerDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/customer/dashboard"
-              element={
-                <ProtectedRoute requiredRole="CUSTOMER">
-                  <UserDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </div>
-      </Router>
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <Router>
+          <div className="min-h-screen bg-gray-50">
+            <Navbar />
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route
+                path="/login"
+                element={
+                  <GuestRoute>
+                    <Login />
+                  </GuestRoute>
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <GuestRoute>
+                    <Register />
+                  </GuestRoute>
+                }
+              />
+              <Route
+                path="/owner/dashboard"
+                element={
+                  <ProtectedRoute requiredRole="OWNER">
+                    <OwnerDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/customer/dashboard"
+                element={
+                  <ProtectedRoute requiredRole="CUSTOMER">
+                    <UserDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+        </Router>
+      </AuthProvider>
+    </ToastProvider>
   );
 }
 

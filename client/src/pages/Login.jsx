@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { motion } from 'framer-motion';
 import { Mail, Lock, LogIn, ArrowRight } from 'lucide-react';
 import heroImage from '../assets/login-hero.png';
@@ -14,6 +15,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
 
   const { login } = useAuth();
+  const { showError } = useToast();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -40,6 +42,7 @@ const Login = () => {
       }
     } else {
       setError(result.message);
+      showError(result.message);
     }
 
     setLoading(false);
