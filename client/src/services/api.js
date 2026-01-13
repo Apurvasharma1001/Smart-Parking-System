@@ -57,6 +57,8 @@ export const authAPI = {
 // Parking Lots API
 export const parkingLotAPI = {
   getAll: (params) => api.get('/parking-lots', { params }),
+  getNearby: (lat, lng, maxDistance = 10000) => 
+    api.get('/parking-lots/nearby', { params: { lat, lng, maxDistance } }),
   getById: (id) => api.get(`/parking-lots/${id}`),
   create: (data) => api.post('/parking-lots', data),
   update: (id, data) => api.put(`/parking-lots/${id}`, data),
@@ -71,6 +73,7 @@ export const parkingLotAPI = {
   getSlotStatus: (id) => api.get(`/parking-lots/${id}/slot-status`),
   refreshSlots: (id) => api.post(`/parking-lots/${id}/refresh-slots`),
   processFrame: (id, imageData) => api.post(`/parking-lots/${id}/process-frame`, { imageData }),
+  getSlots: (id) => api.get(`/parking-lots/${id}/slots`),
 };
 
 // Bookings API

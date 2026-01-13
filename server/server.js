@@ -1,13 +1,13 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
-const connectDB = require('./config/database');
+const connectDB = require('./config/db');
 
 // Load env vars
 dotenv.config();
 
 // Validate required environment variables
-const requiredEnvVars = ['JWT_SECRET', 'MONGODB_URI'];
+const requiredEnvVars = ['JWT_SECRET', 'MONGO_URI'];
 const missingEnvVars = requiredEnvVars.filter((varName) => !process.env[varName]);
 
 if (missingEnvVars.length > 0) {
@@ -62,7 +62,7 @@ app.get('/api/health', (req, res) => {
     status: 'OK', 
     message: 'Smart Parking System API is running',
     database: dbStates[dbStatus] || 'unknown',
-    mongodb_uri: process.env.MONGODB_URI ? 'configured' : 'not configured'
+    mongodb_uri: process.env.MONGO_URI ? 'configured' : 'not configured'
   });
 });
 
